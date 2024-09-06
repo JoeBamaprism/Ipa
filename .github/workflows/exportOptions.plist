@@ -1,14 +1,62 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>method</key>
-    <string>ad-hoc</string> <!-- Or use "development", "app-store", depending on the context -->
-    <key>compileBitcode</key>
-    <false/>
-    <key>signingStyle</key>
-    <string>manual</string>
-    <key>stripSwiftSymbols</key>
-    <true/>
-</dict>
-</plist>
+name: Build IPA
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    # Checkout the code from the repo
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Set up Node.js 20 environment
+    - name: Setup Node.js 20
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    # Set up Xcode environment
+    - name: Set up Xcode
+      run: |
+        sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+        sudo xcodebuild -version
+
+    # Install dependencies if necessary (e.g., CocoaPods or Carthage)
+    - name: Install dependencies
+      run: |
+        # Uncomment below if you're using CocoaPods
+        # pod install
+        
+        # Uncomment below if you're using Carthage
+        # carthage bootstrap --platform iOS
+
+    # Build the project and generate an unsigned IPA
+    - name: Build unsigned IPA
+      run: |
+        xcodebuild -project Ecliptica.xcodeproj \
+                   -scheme "YourSchemeName" \ # Make sure to replace this with the correct scheme name
+                   -sdk iphoneos \
+                   -configuration Release \
+                   CODE_SIGNING_ALLOWED=NO \
+                   -archivePath $PWD/build/Ecliptica.xcarchive \
+                   archive
+
+        xcodebuild -exportArchive \
+                   -archivePath $PWD/build/Ecliptica.xcarchive \
+                   -exportOptionsPlist ./exportOptions.plist \
+                   -exportPath $PWD/build/unsigned \
+                   CODE_SIGNING_ALLOWED=NO \
+                   -allowProvisioningUpdates
+
+    # Save the .ipa as an artifact
+    - name: Upload IPA as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: unsigned-ipa
+        path: build/unsigned/*.ipa
