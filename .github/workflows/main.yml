@@ -15,6 +15,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    # Set up Node.js 20 environment
+    - name: Setup Node.js 20
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
     # Set up Xcode environment
     - name: Set up Xcode
       run: |
@@ -33,19 +39,19 @@ jobs:
     # Build the project and generate an unsigned IPA
     - name: Build unsigned IPA
       run: |
-        # Replace "MyApp.xcodeproj" and "MyApp" with your project's actual names
-        xcodebuild -project MyApp.xcodeproj \
-                   -scheme MyApp \
+        xcodebuild -project Ecliptica.xcodeproj \
+                   -scheme Ecliptica \
                    -sdk iphoneos \
                    -configuration Release \
-                   -archivePath $PWD/build/MyApp.xcarchive \
+                   CODE_SIGNING_ALLOWED=NO \
+                   -archivePath $PWD/build/Ecliptica.xcarchive \
                    archive
 
-        # Export unsigned .ipa
         xcodebuild -exportArchive \
-                   -archivePath $PWD/build/MyApp.xcarchive \
+                   -archivePath $PWD/build/Ecliptica.xcarchive \
                    -exportOptionsPlist ./exportOptions.plist \
                    -exportPath $PWD/build/unsigned \
+                   CODE_SIGNING_ALLOWED=NO \
                    -allowProvisioningUpdates
 
     # Save the .ipa as an artifact
